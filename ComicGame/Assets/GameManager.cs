@@ -4,6 +4,8 @@ using UnityEngine;
 
 public enum BattleState {FIGHT, DEFEND, WON, DEFEATED}
 
+public enum CombatState {FIGHT, DEFEND}
+
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private ParticleSystem specialAttackEffect;
@@ -30,7 +32,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int mySpecialAttackPower;
     [SerializeField] private int enemyAttackPower;
     
-    [SerializeField] private BattleState _battleState;
+    // [SerializeField] private BattleState _battleState;
+    [SerializeField] private CombatState _combatState;
     private static ComicManager CM;
     public bool battleDone;
 
@@ -41,8 +44,9 @@ public class GameManager : MonoBehaviour
     {
         CM = FindObjectOfType<ComicManager>();
         //Check if it is the pokemon choice panel
-        _battleState = BattleState.FIGHT; // change this somewhere else
-        
+        // _battleState = BattleState.FIGHT; // change this somewhere else
+        _combatState = CombatState.DEFEND;
+
     }
 
     // Update is called once per frame
@@ -50,23 +54,23 @@ public class GameManager : MonoBehaviour
     {
         if (battleDone)
         {
-            Debug.Log("battle is done");
-            if (_battleState == BattleState.WON)
-            {
-                StartCoroutine(UpdateEndPanel(wonPanel));
-            }
-                
-            else if (_battleState == BattleState.DEFEATED)
-            {
-                StartCoroutine(UpdateEndPanel(defeatedPanel));
-            }
+            // Debug.Log("battle is done");
+            // if (_battleState == BattleState.WON)
+            // {
+            //     StartCoroutine(UpdateEndPanel(wonPanel));
+            // }
+            //     
+            // else if (_battleState == BattleState.DEFEATED)
+            // {
+            //     StartCoroutine(UpdateEndPanel(defeatedPanel));
+            // }
                 
         }
         
         if (CM.GetCurrentPanelNumber() == pokemonChoicePanel) //temporarily disable the continue for a few seconds
             PokemonChoice();
         else if (CM.GetCurrentPanelNumber() == pokemonBattlePanel && !battleDone)//check if it is the last panel to start the fight
-            BattleScreen();
+            BattleScreenNew();
     }
 
     void PokemonChoice()
@@ -78,7 +82,7 @@ public class GameManager : MonoBehaviour
         //pause for a bit and display options
         pokeChoiceCanvas.SetActive(true);
         
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetButtonDown("RedButton"))
         {
             pokemonChosen = "Charmander"; //move to next panel after choice made
             pokeballOutImage.sprite = pokemonOutSprites[0];
@@ -88,7 +92,7 @@ public class GameManager : MonoBehaviour
             settings.startColor = new ParticleSystem.MinMaxGradient( new Color32(255, 2, 0, 255) );
             pokeChoiceCanvas.SetActive(false);
         }
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        else if (Input.GetButtonDown("GreenButton"))
         {
             pokemonChosen = "Squirtle";
             pokeballOutImage.sprite = pokemonOutSprites[1];
@@ -98,7 +102,7 @@ public class GameManager : MonoBehaviour
             settings.startColor = new ParticleSystem.MinMaxGradient( new Color(0, 128, 255) );
             pokeChoiceCanvas.SetActive(false);
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        else if (Input.GetButtonDown("BlueButton"))
         {
             pokemonChosen = "Bulbasaur";
             pokeballOutImage.sprite = pokemonOutSprites[2];
@@ -111,111 +115,120 @@ public class GameManager : MonoBehaviour
         
     }
 
-    void BattleScreen() //maybe I enumerator and update the images on the screen with info
+    void BattleScreenNew()
     {
         if (Vector3.Distance(Camera.main.transform.position,
-            CM.GetCurrentPanelBoard().transform.position + new Vector3(0, 0, -10)) > 0)
-            return;
-
-        // Debug.Log(_battleState + " now the battle is " + battleDone);
-
-        if (myPokemon.GetDamaged(0) <= 0)
-        {
-            StopAllCoroutines();
-            _battleState = BattleState.DEFEATED;
-        }
-            
-        else if (enemyPokemon.GetDamaged(0) <= 0)
-        {
-            StopAllCoroutines();
-            _battleState = BattleState.WON;
-        }
-            
-
-        switch (_battleState)
-        {
-            case BattleState.DEFEATED: pokeBattleCanvas.SetActive(false);
-                 //cannot update becude battle done
-                battleDone = true;
-                break;
-            case BattleState.WON: pokeBattleCanvas.SetActive(false);
-                // Move to won panel
-                battleDone = true;
-                break;
-            case BattleState.FIGHT: //CancelInvoke();
-                pokeBattleCanvas.SetActive(true); //need animations and invoke (delay) the state range after animation
-            
-                if (Input.GetKeyDown(KeyCode.LeftArrow)) // norm attack
-                {
-                    myPokemon.GetComponent<Animator>().SetBool("Attack", true);
-                    enemyPokemon.GetDamaged(myNormalAttackPower); //add animation here
-                    StartCoroutine(DelayedStateChange(BattleState.DEFEND));
-                }
-                else if (Input.GetKeyDown(KeyCode.UpArrow)) //Leer increease attack by .2f
-                {
-                    myPokemon.GetComponent<Animator>().SetBool("Leer", true);
-                    myNormalAttackPower += 2;
-                    mySpecialAttackPower += 2;
-                    StartCoroutine(DelayedStateChange(BattleState.DEFEND));
-                    // Invoke("DelayedDefendState", 1f);
-                }
-                else if (Input.GetKeyDown(KeyCode.RightArrow)) //Adjust the text here and attack animation
-                {
-                    // myPokemon.GetComponent<Animator>().Play("pokemon-specialAttack");
-                    myPokemon.GetComponent<Animator>().SetBool("SpecialAttack", true);
-                    enemyPokemon.GetDamaged(mySpecialAttackPower); //add animation here
-                    StartCoroutine(DelayedStateChange(BattleState.DEFEND));
-                    // Invoke("DelayedDefendState", 1f);
-                }
-                break;
-            case BattleState.DEFEND: pokeBattleCanvas.SetActive(false); //constant dameage here
-                // enemyPokemon.GetComponent<Animator>().Play("enemy-attack");
-                enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", true);
-
-                if (!enemyAnimDone)
-                {
-                    myPokemon.GetDamaged(enemyAttackPower); //add animation here
-                    enemyAnimDone = true;
-                }
-                
-                // Invoke("DelayedFightState", 1f);
-                StartCoroutine(DelayedStateChange(BattleState.FIGHT));
-                
-
-                // if (enemyPokemon.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("enemy-attack"))
-                // {
-                //     enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", false);
-                //     _battleState = BattleState.FIGHT;
-                //     enemyAnimDone = false;
-                // }
-                
-                // _battleState = BattleState.FIGHT;// then back to Attack
-                break;
-            
-                
-        }
-
+        CM.GetCurrentPanelBoard().transform.position + new Vector3(0, 0, -10)) > 0)
+        return;
+        
+        
     }
 
-    IEnumerator DelayedStateChange(BattleState state)
-    {
-        yield return new WaitForSeconds(.5f);
-        
-        if (state == BattleState.DEFEND)
-        {
-            myPokemon.GetComponent<Animator>().SetBool("Leer", false);
-            myPokemon.GetComponent<Animator>().SetBool("SpecialAttack", false);
-            myPokemon.GetComponent<Animator>().SetBool("Attack", false);
-            // pokeBattleCanvas.SetActive(true);
-        }
-        else
-        {
-            enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", false);
-            enemyAnimDone = false;
-        }
-        
-        _battleState = state;
-    }
+    // void BattleScreen() //maybe I enumerator and update the images on the screen with info
+    // {
+    //     if (Vector3.Distance(Camera.main.transform.position,
+    //         CM.GetCurrentPanelBoard().transform.position + new Vector3(0, 0, -10)) > 0)
+    //         return;
+    //
+    //     // Debug.Log(_battleState + " now the battle is " + battleDone);
+    //
+    //     if (myPokemon.GetDamaged(0) <= 0)
+    //     {
+    //         StopAllCoroutines();
+    //         _battleState = BattleState.DEFEATED;
+    //     }
+    //         
+    //     else if (enemyPokemon.GetDamaged(0) <= 0)
+    //     {
+    //         StopAllCoroutines();
+    //         _battleState = BattleState.WON;
+    //     }
+    //         
+    //
+    //     switch (_battleState)
+    //     {
+    //         case BattleState.DEFEATED: pokeBattleCanvas.SetActive(false);
+    //              //cannot update becude battle done
+    //             battleDone = true;
+    //             break;
+    //         case BattleState.WON: pokeBattleCanvas.SetActive(false);
+    //             // Move to won panel
+    //             battleDone = true;
+    //             break;
+    //         case BattleState.FIGHT: //CancelInvoke();
+    //             pokeBattleCanvas.SetActive(true); //need animations and invoke (delay) the state range after animation
+    //         
+    //             if (Input.GetKeyDown(KeyCode.LeftArrow)) // norm attack
+    //             {
+    //                 myPokemon.GetComponent<Animator>().SetBool("Attack", true);
+    //                 enemyPokemon.GetDamaged(myNormalAttackPower); //add animation here
+    //                 StartCoroutine(DelayedStateChange(BattleState.DEFEND));
+    //             }
+    //             else if (Input.GetKeyDown(KeyCode.UpArrow)) //Leer increease attack by .2f
+    //             {
+    //                 myPokemon.GetComponent<Animator>().SetBool("Leer", true);
+    //                 myNormalAttackPower += 2;
+    //                 mySpecialAttackPower += 2;
+    //                 StartCoroutine(DelayedStateChange(BattleState.DEFEND));
+    //                 // Invoke("DelayedDefendState", 1f);
+    //             }
+    //             else if (Input.GetKeyDown(KeyCode.RightArrow)) //Adjust the text here and attack animation
+    //             {
+    //                 // myPokemon.GetComponent<Animator>().Play("pokemon-specialAttack");
+    //                 myPokemon.GetComponent<Animator>().SetBool("SpecialAttack", true);
+    //                 enemyPokemon.GetDamaged(mySpecialAttackPower); //add animation here
+    //                 StartCoroutine(DelayedStateChange(BattleState.DEFEND));
+    //                 // Invoke("DelayedDefendState", 1f);
+    //             }
+    //             break;
+    //         case BattleState.DEFEND: pokeBattleCanvas.SetActive(false); //constant dameage here
+    //             // enemyPokemon.GetComponent<Animator>().Play("enemy-attack");
+    //             enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", true);
+    //
+    //             if (!enemyAnimDone)
+    //             {
+    //                 myPokemon.GetDamaged(enemyAttackPower); //add animation here
+    //                 enemyAnimDone = true;
+    //             }
+    //             
+    //             // Invoke("DelayedFightState", 1f);
+    //             StartCoroutine(DelayedStateChange(BattleState.FIGHT));
+    //             
+    //
+    //             // if (enemyPokemon.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("enemy-attack"))
+    //             // {
+    //             //     enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", false);
+    //             //     _battleState = BattleState.FIGHT;
+    //             //     enemyAnimDone = false;
+    //             // }
+    //             
+    //             // _battleState = BattleState.FIGHT;// then back to Attack
+    //             break;
+    //         
+    //             
+    //     }
+
+    // }
+
+    // IEnumerator DelayedStateChange(BattleState state)
+    // {
+    //     yield return new WaitForSeconds(.5f);
+    //     
+    //     if (state == BattleState.DEFEND)
+    //     {
+    //         myPokemon.GetComponent<Animator>().SetBool("Leer", false);
+    //         myPokemon.GetComponent<Animator>().SetBool("SpecialAttack", false);
+    //         myPokemon.GetComponent<Animator>().SetBool("Attack", false);
+    //         // pokeBattleCanvas.SetActive(true);
+    //     }
+    //     else
+    //     {
+    //         enemyPokemon.GetComponent<Animator>().SetBool("enemyAttack", false);
+    //         enemyAnimDone = false;
+    //     }
+    //     
+    //     _battleState = state;
+    // }
     // private void DelayedFightState()
     // {
     //     // enemyPokemon.GetComponent<Animator>().Play("enemy-attack");
