@@ -38,6 +38,7 @@ public class GameManager : MonoBehaviour
     
     [SerializeField] private BattleState _battleState;
     [SerializeField] private CombatState _combatState;
+    [SerializeField] private Transform lastPanel;
     private int _currentPokemonIndex; // 0 fire 1 grass 2 water
     private static ComicManager CM;
     public bool battleDone;
@@ -186,7 +187,7 @@ public class GameManager : MonoBehaviour
                 if (Input.GetButtonDown("RedButton"))
                 {
                     Vector3 endPosition = new Vector3(165.5f, 2.2f, -2f); //the enemy position
-                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity); //position it to the left
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel); //position it to the left
                     attackObj.transform.localScale = Vector3.zero;
                     attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
                     attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
@@ -197,7 +198,7 @@ public class GameManager : MonoBehaviour
                 else if (Input.GetButtonDown("GreenButton"))
                 {
                     Vector3 endPosition = new Vector3(168.5f, 2.2f, -2f);
-                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity); 
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel); 
                     attackObj.transform.localScale = Vector3.zero;
                     attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
                     attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
@@ -207,7 +208,7 @@ public class GameManager : MonoBehaviour
                 else if (Input.GetButtonDown("BlueButton")) //Move towards might need to be in update or sperate and use bool to chec if button pressed
                 {
                     Vector3 endPosition = new Vector3(170.5f, 2.2f, -2f);
-                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity);
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel);
                     attackObj.transform.localScale = Vector3.zero;
                     attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
                     attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
@@ -250,17 +251,17 @@ public class GameManager : MonoBehaviour
 
     IEnumerator BirdAttack() //make the attacks dissapper after a while
     {
-        Vector3 defaultPosition = new Vector3(.8f, .8f, -1);
-        Vector3 defaultEndPosition = new Vector3(0f, -.7f, -2);
-        Vector3[] positions = {defaultPosition + Vector3.left * 3f, defaultPosition, defaultPosition + Vector3.right * 3f};
-        Vector3[] endPositions = {defaultEndPosition + Vector3.left * 3f, defaultEndPosition, defaultEndPosition + Vector3.right * 3f};
+        Vector3 defaultPosition = new Vector3(0, 1f, -1);
+        // Vector3 defaultEndPosition = new Vector3(0f, -.7f, -2);
+        Vector3[] positions = {defaultPosition + Vector3.left, defaultPosition, defaultPosition + Vector3.right};
+        // Vector3[] endPositions = {defaultEndPosition + Vector3.left, defaultEndPosition, defaultEndPosition + Vector3.right};
         int attackPos = Random.Range(0, 3);
 
-        GameObject enemyAttackObj = Instantiate(enemyAttacks[attackPos], positions[attackPos], Quaternion.identity);
-        enemyAttackObj.transform.localScale = Vector3.zero;
+        GameObject enemyAttackObj = Instantiate(enemyAttacks[attackPos], positions[attackPos], Quaternion.identity, lastPanel);
+        enemyAttackObj.transform.localScale = new Vector3(.2f,.2f,.2f);
         enemyAttackObj.transform.localScale = Vector3.MoveTowards(enemyAttackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
-        enemyAttackObj.transform.position = Vector3.MoveTowards(enemyAttackObj.transform.position, endPositions[attackPos],
-            Time.deltaTime * 10f);
+        // enemyAttackObj.transform.position = Vector3.MoveTowards(enemyAttackObj.transform.position, endPositions[attackPos],
+        //     Time.deltaTime * 10f);
         
         yield return new WaitForSeconds(.5f);
         
