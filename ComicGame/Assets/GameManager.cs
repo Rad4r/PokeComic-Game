@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public enum BattleState {FIGHT, DEFEND, WON, DEFEATED}
@@ -15,6 +16,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private SpriteRenderer defeatedPanel;
     [SerializeField] private SpriteRenderer wonPanel;
     [SerializeField] private string pokemonChosen;
+    [SerializeField] private TextMeshProUGUI battleStateText;
 
     [Header("Pokemon sprites")] 
     
@@ -82,17 +84,11 @@ public class GameManager : MonoBehaviour
         // Debug.Log(battleTimer);
         if (battleDone)
         {
-            // Debug.Log("battle is done");
-            // if (_battleState == BattleState.WON)
-            // {
-            //     StartCoroutine(UpdateEndPanel(wonPanel));
-            // }
-            //     
-            // else if (_battleState == BattleState.DEFEATED)
-            // {
-            //     StartCoroutine(UpdateEndPanel(defeatedPanel));
-            // }
+            if (_battleState == BattleState.WON)
+                StartCoroutine(UpdateEndPanel(wonPanel));
                 
+            else if (_battleState == BattleState.DEFEATED)
+                StartCoroutine(UpdateEndPanel(defeatedPanel));
         }
         
         if(meAttacking)
@@ -176,9 +172,11 @@ public class GameManager : MonoBehaviour
             {
                 case CombatState.DEFEND:
                     _combatState = CombatState.FIGHT;
+                    battleStateText.text = "Combat State: Fighting";
                     break;
                 case CombatState.FIGHT: 
                     _combatState = CombatState.DEFEND;
+                    battleStateText.text = "Combat State: Dodging";
                     break;
             }
         }
