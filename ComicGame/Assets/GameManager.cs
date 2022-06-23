@@ -31,20 +31,27 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int myNormalAttackPower;
     [SerializeField] private int mySpecialAttackPower;
     [SerializeField] private int enemyAttackPower;
+
+    [Header("PokemonAttacks")] 
+    [SerializeField] private GameObject[] myAttacks;
+    [SerializeField] private GameObject[] enemyAttacks;
     
-    // [SerializeField] private BattleState _battleState;
+    [SerializeField] private BattleState _battleState;
     [SerializeField] private CombatState _combatState;
+    private int _currentPokemonIndex; // 0 fire 1 grass 2 water
     private static ComicManager CM;
     public bool battleDone;
 
     private bool myPokeAnimDone;
     private bool enemyAnimDone;
 
+    private float battleTimer;
+
     void Start()
     {
         CM = FindObjectOfType<ComicManager>();
         //Check if it is the pokemon choice panel
-        // _battleState = BattleState.FIGHT; // change this somewhere else
+        _battleState = BattleState.DEFEND; // change this somewhere else
         _combatState = CombatState.DEFEND;
 
     }
@@ -90,26 +97,29 @@ public class GameManager : MonoBehaviour
             CM.ChangePanelNumber(pokemonChoicePanel + 1);
             ParticleSystem.MainModule settings = specialAttackEffect.main;
             settings.startColor = new ParticleSystem.MinMaxGradient( new Color32(255, 2, 0, 255) );
+            _currentPokemonIndex = 0;
             pokeChoiceCanvas.SetActive(false);
         }
         else if (Input.GetButtonDown("GreenButton"))
         {
-            pokemonChosen = "Squirtle";
+            pokemonChosen = "BulbaSquirtle";
             pokeballOutImage.sprite = pokemonOutSprites[1];
             battlePokemon.sprite = battlePokemonSprites[1];
             CM.ChangePanelNumber(pokemonChoicePanel + 1);
             ParticleSystem.MainModule settings = specialAttackEffect.main;
-            settings.startColor = new ParticleSystem.MinMaxGradient( new Color(0, 128, 255) );
+            settings.startColor = new ParticleSystem.MinMaxGradient( new Color(0, 153, 0));
+            _currentPokemonIndex = 1;
             pokeChoiceCanvas.SetActive(false);
         }
         else if (Input.GetButtonDown("BlueButton"))
         {
-            pokemonChosen = "Bulbasaur";
+            pokemonChosen = "Squirtasaur";
             pokeballOutImage.sprite = pokemonOutSprites[2];
             battlePokemon.sprite = battlePokemonSprites[2];
             CM.ChangePanelNumber(pokemonChoicePanel + 1);
             ParticleSystem.MainModule settings = specialAttackEffect.main;
-            settings.startColor = new ParticleSystem.MinMaxGradient( new Color(0, 153, 0) );
+            settings.startColor = new ParticleSystem.MinMaxGradient(new Color(0, 128, 255));
+            _currentPokemonIndex = 2;
             pokeChoiceCanvas.SetActive(false);
         }
         
@@ -121,9 +131,179 @@ public class GameManager : MonoBehaviour
         CM.GetCurrentPanelBoard().transform.position + new Vector3(0, 0, -10)) > 0)
         return;
         
+        if (myPokemon.GetDamaged(0) <= 0)
+        {
+            StopAllCoroutines();
+            _battleState = BattleState.DEFEATED;
+        }
+            
+        else if (enemyPokemon.GetDamaged(0) <= 0)
+        {
+            StopAllCoroutines();
+            _battleState = BattleState.WON;
+        }
+
+        if (Input.GetButtonDown("SwitchAttack")) //CHANGE Based on what the input is (On or Off)
+        {
+            switch (_combatState)
+            {
+                case CombatState.DEFEND:
+                    _combatState = CombatState.FIGHT;
+                    break;
+                case CombatState.FIGHT: 
+                    _combatState = CombatState.DEFEND;
+                    break;
+            }
+        }
+
+
+        switch (_combatState)
+        {
+            case CombatState.DEFEND: //Check if the pokemon is hit here maybe and add colliders to the prefabs maybe
+                //Or time it to check for damage
+                if (Input.GetButtonDown("RedButton"))
+                {
+                    myPokemon.transform.position += Vector3.left * 3; // not hard code this value
+                    Invoke("PokemonPositionReset", .5f);
+                    //move pokemon left
+                }
+                else if (Input.GetButtonDown("GreenButton"))
+                {
+                    myPokemon.transform.position += Vector3.up * 3; // not hard code this value
+                    Invoke("PokemonPositionReset", .5f);
+                    //move pokemon up
+                }
+                else if (Input.GetButtonDown("BlueButton"))
+                {
+                    myPokemon.transform.position += Vector3.right * 3; // not hard code this value
+                    Invoke("PokemonPositionReset", .5f);
+                    //move pokemon right
+                }
+                break;
+            case CombatState.FIGHT: //change the attack sprite according to current pokemon
+                Vector3 startPosition = new Vector3(167.56f, 0.85f, -1f);
+                
+                if (Input.GetButtonDown("RedButton"))
+                {
+                    Vector3 endPosition = new Vector3(165.5f, 2.2f, -2f); //the enemy position
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity); //position it to the left
+                    attackObj.transform.localScale = Vector3.zero;
+                    attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+                    attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
+                        Time.deltaTime * 10f);
+                    //Also make it grow in scale
+                    //Attack pokemon left
+                }
+                else if (Input.GetButtonDown("GreenButton"))
+                {
+                    Vector3 endPosition = new Vector3(168.5f, 2.2f, -2f);
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity); 
+                    attackObj.transform.localScale = Vector3.zero;
+                    attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+                    attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
+                        Time.deltaTime * 10f);
+                    //Attack pokemon up
+                }
+                else if (Input.GetButtonDown("BlueButton")) //Move towards might need to be in update or sperate and use bool to chec if button pressed
+                {
+                    Vector3 endPosition = new Vector3(170.5f, 2.2f, -2f);
+                    GameObject attackObj = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity);
+                    attackObj.transform.localScale = Vector3.zero;
+                    attackObj.transform.localScale = Vector3.MoveTowards(attackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+                    attackObj.transform.position = Vector3.MoveTowards(attackObj.transform.position, endPosition,
+                        Time.deltaTime * 10f);
+                    //Attack pokemon right
+                }
+                break;
+        }
+        
+        switch (_battleState) //collision detection required
+        {
+            case BattleState.DEFEATED: pokeBattleCanvas.SetActive(false);
+                 //cannot update becude battle done
+                battleDone = true;
+                break;
+            case BattleState.WON: pokeBattleCanvas.SetActive(false);
+                // Move to won panel
+                battleDone = true;
+                break;
+            case BattleState.DEFEND: //delay and attack next
+                //change to fight after a few seconds
+                battleTimer += Time.deltaTime;
+                StartCoroutine(MoveBird());
+                
+                //Bird attacks in different directions
+                
+                break;
+            case BattleState.FIGHT: //delay and move next  attack from where it stopped
+                Vector3 defaultPosition = new Vector3(.8f, .8f, -1);
+                //Ienumerator and shoot from current bird post to pokemon
+                StartCoroutine(BirdAttack());
+                
+                // enemyPokemon.transform.position = 
+                //Bird moves around 
+                break;
+        }
+        
         
     }
 
+    IEnumerator BirdAttack() //make the attacks dissapper after a while
+    {
+        Vector3 defaultPosition = new Vector3(.8f, .8f, -1);
+        Vector3 defaultEndPosition = new Vector3(0f, -.7f, -2);
+        Vector3[] positions = {defaultPosition + Vector3.left * 3f, defaultPosition, defaultPosition + Vector3.right * 3f};
+        Vector3[] endPositions = {defaultEndPosition + Vector3.left * 3f, defaultEndPosition, defaultEndPosition + Vector3.right * 3f};
+        int attackPos = Random.Range(0, 3);
+
+        GameObject enemyAttackObj = Instantiate(enemyAttacks[attackPos], positions[attackPos], Quaternion.identity);
+        enemyAttackObj.transform.localScale = Vector3.zero;
+        enemyAttackObj.transform.localScale = Vector3.MoveTowards(enemyAttackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+        enemyAttackObj.transform.position = Vector3.MoveTowards(enemyAttackObj.transform.position, endPositions[attackPos],
+            Time.deltaTime * 10f);
+        
+        yield return new WaitForSeconds(.5f);
+        
+        if (battleTimer < 10f)
+            StartCoroutine(MoveBird());
+        else
+        {
+            _battleState = BattleState.DEFEND;
+            battleTimer = 0;
+        }
+            
+    }
+    IEnumerator MoveBird() // update could launch the bird too far away
+    {
+        Vector3 defaultPosition = new Vector3(.8f, .8f, -1);
+        int movePos = Random.Range(0, 3);
+        Vector3[] positions = {defaultPosition + Vector3.left * 3f, defaultPosition, defaultPosition + Vector3.right * 3f};
+
+        enemyPokemon.transform.position = positions[movePos];
+        //might have to use local positions
+        yield return new WaitForSeconds(.5f);
+
+        if (battleTimer < 10f)
+            StartCoroutine(MoveBird());
+        else
+        {
+            _battleState = BattleState.FIGHT;
+            battleTimer = 0;
+        }
+            
+        // if (_battleState == BattleState.DEFEND)
+        //     StartCoroutine(MoveBird());
+    }
+
+    void EnemyPokemonRestPosition()
+    {
+        enemyPokemon.transform.position = new Vector3(.8f, .8f, -1);
+    }
+    void PokemonPositionReset()
+    {
+        myPokemon.transform.position = new Vector3(0, -0.7f, -2);
+    }
+    
     // void BattleScreen() //maybe I enumerator and update the images on the screen with info
     // {
     //     if (Vector3.Distance(Camera.main.transform.position,
