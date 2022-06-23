@@ -48,6 +48,17 @@ public class GameManager : MonoBehaviour
     private float timeBetweenAttacks = 3;
     private float attackTimer;
     private bool meAttacking;
+    private int attackDirection; // 0 left 1 straight 2 right
+    private Vector3 myAttackEndPosition = new Vector3(168.5f, 2.2f, -2f);
+    private Vector3[] myAttackEndPositions;
+    
+    //Enemy combat
+    private GameObject enemyAttackObj;
+    private bool enemyAttacking;
+    private int enemyAttackDirection;
+    private Vector3 enemyAttackEndPosition = new Vector3(0f, -.7f, -2);
+    private Vector3[] enemyAttackEndPositions;
+    
 
     private bool myPokeAnimDone;
     private bool enemyAnimDone;
@@ -57,8 +68,10 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         CM = FindObjectOfType<ComicManager>();
+        myAttackEndPositions = new []{myAttackEndPosition + Vector3.left * 2f, myAttackEndPosition, myAttackEndPosition + Vector3.right * 1.5f};
+        enemyAttackEndPositions = new []{enemyAttackEndPosition + Vector3.left * 2f, enemyAttackEndPosition, enemyAttackEndPosition + Vector3.right * 1.5f};
         //Check if it is the pokemon choice panel
-        _battleState = BattleState.DEFEND; // change this somewhere else
+        _battleState = BattleState.FIGHT; // change this somewhere else
         _combatState = CombatState.DEFEND;
 
     }
@@ -84,6 +97,9 @@ public class GameManager : MonoBehaviour
         
         if(meAttacking)
             MyAttack();
+        
+        if(enemyAttacking)
+            EnemyAttack();
         
         if (CM.GetCurrentPanelNumber() == pokemonChoicePanel) //temporarily disable the continue for a few seconds
             PokemonChoice();
@@ -173,19 +189,19 @@ public class GameManager : MonoBehaviour
             case CombatState.DEFEND: //Check if the pokemon is hit here maybe and add colliders to the prefabs maybe
                 myPokemon.transform.localPosition = new Vector3(Mathf.Clamp(myPokemon.transform.localPosition.x, -1.5f, 1.5f),Mathf.Clamp(myPokemon.transform.localPosition.y, -.7f, 0.35f), -2f);
                 //cOULD BE BETTER BUT LEAVE IT
-                if (Input.GetButtonDown("RedButton"))
+                if (Input.GetButtonDown("RedButton")) //move pokemon left
                 {
-                    myPokemon.transform.localPosition += Vector3.left * 1.5f; // not hard code this value
+                    myPokemon.transform.localPosition += Vector3.left * 2f; // not hard code this value
                     Invoke("PokemonPositionReset", .5f);
-                    //move pokemon left
+                    
                 }
-                else if (Input.GetButtonDown("GreenButton"))
+                else if (Input.GetButtonDown("GreenButton")) //move pokemon left
                 {
                     myPokemon.transform.localPosition += Vector3.up * 1.5f; // not hard code this value
                     Invoke("PokemonPositionReset", .5f);
                     //move pokemon up
                 }
-                else if (Input.GetButtonDown("BlueButton"))
+                else if (Input.GetButtonDown("BlueButton")) //move pokemon left
                 {
                     myPokemon.transform.localPosition += Vector3.right * 1.5f; // not hard code this value
                     Invoke("PokemonPositionReset", .5f);
@@ -193,24 +209,27 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case CombatState.FIGHT: //change the attack sprite according to current pokemon
-                Vector3 startPosition = new Vector3(167.56f, 0.85f, -1f);
+                Vector3 myAttackStartPosition = new Vector3(167.56f, 0.85f, -1f);
                 
                 if (Input.GetButtonDown("RedButton"))
                 {
-                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel);
+                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], myAttackStartPosition, Quaternion.identity, lastPanel);
                     myPokemonAttack.transform.localScale = Vector3.zero;
+                    attackDirection = 0;
                     meAttacking = true;
                 }
                 else if (Input.GetButtonDown("GreenButton")) // doesn't update
                 {
-                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel); 
+                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], myAttackStartPosition, Quaternion.identity, lastPanel); 
                     myPokemonAttack.transform.localScale = Vector3.zero;
+                    attackDirection = 1;
                     meAttacking = true;
                 }
                 else if (Input.GetButtonDown("BlueButton")) //Move towards might need to be in update or sperate and use bool to chec if button pressed
                 {
-                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], startPosition, Quaternion.identity, lastPanel); 
+                    myPokemonAttack = Instantiate(myAttacks[_currentPokemonIndex], myAttackStartPosition, Quaternion.identity, lastPanel); 
                     myPokemonAttack.transform.localScale = Vector3.zero;
+                    attackDirection = 2;
                     meAttacking = true;
                     //Attack pokemon right
                 }
@@ -220,28 +239,20 @@ public class GameManager : MonoBehaviour
         switch (_battleState) //collision detection required
         {
             case BattleState.DEFEATED: pokeBattleCanvas.SetActive(false);
-                 //cannot update becude battle done
                 battleDone = true;
                 break;
             case BattleState.WON: pokeBattleCanvas.SetActive(false);
-                // Move to won panel
                 battleDone = true;
                 break;
             case BattleState.DEFEND: //delay and attack next
-                //change to fight after a few seconds
                 battleTimer += Time.deltaTime;
                 MoveBird();
                 
-                //Bird attacks in different directions
                 
                 break;
             case BattleState.FIGHT: //delay and move next  attack from where it stopped
                 battleTimer += Time.deltaTime;
-                //Ienumerator and shoot from current bird post to pokemon
                 BirdAttack();
-                
-                // enemyPokemon.transform.position = 
-                //Bird moves around 
                 break;
         }
         
@@ -250,12 +261,12 @@ public class GameManager : MonoBehaviour
 
     void MyAttack() //end position needs to be adjusted to the right position
     {
-        Vector3 endPosition = new Vector3(168.5f, 2.2f, -2f); 
-        if (myPokemonAttack.transform.position == endPosition)
+        
+        if (myPokemonAttack.transform.position == myAttackEndPositions[attackDirection])
             meAttacking = false;
         
         myPokemonAttack.transform.localScale = Vector3.MoveTowards(myPokemonAttack.transform.localScale, Vector3.one, Time.deltaTime * 10f);
-        myPokemonAttack.transform.position = Vector3.MoveTowards(myPokemonAttack.transform.position, endPosition,
+        myPokemonAttack.transform.position = Vector3.MoveTowards(myPokemonAttack.transform.position, myAttackEndPositions[attackDirection],
             Time.deltaTime * 10f);
         Destroy(myPokemonAttack, 1f);
         
@@ -269,19 +280,19 @@ public class GameManager : MonoBehaviour
             battleTimer = 0;
         }
 
-        if (battleTimer <= 10 && battleTimer % 2 == 0)
+        if (battleTimer % 2 < 0.005 && !enemyAttacking)
         {
             Vector3 defaultPosition = new Vector3(0, 1f, -1);
-            // Vector3 defaultEndPosition = new Vector3(0f, -.7f, -2);
-            Vector3[] positions = {defaultPosition + Vector3.left, defaultPosition, defaultPosition + Vector3.right};
-            // Vector3[] endPositions = {defaultEndPosition + Vector3.left, defaultEndPosition, defaultEndPosition + Vector3.right};
-            int attackPos = Random.Range(0, 3);
-            GameObject enemyAttackObj = Instantiate(enemyAttacks[attackPos], positions[attackPos], Quaternion.identity, lastPanel);
-            enemyAttackObj.transform.localScale = new Vector3(.2f,.2f,.2f);
-            enemyAttackObj.transform.localScale = Vector3.MoveTowards(enemyAttackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+            Vector3[] positions = new [] {defaultPosition + Vector3.left * 2f, defaultPosition, defaultPosition + Vector3.right * 1.5f};
+            enemyAttackDirection = Random.Range(0, 3);
+            
+            Debug.Log("attackSpawned");
+            //Instantiate not spawning??
+            enemyAttackObj = Instantiate(enemyAttacks[enemyAttackDirection], positions[enemyAttackDirection], Quaternion.identity, lastPanel);
             enemyAttackObj.transform.localPosition = defaultPosition;
-            // enemyAttackObj.transform.position = Vector3.MoveTowards(enemyAttackObj.transform.position, endPositions[attackPos],
-            //     Time.deltaTime * 10f);
+            enemyAttackObj.transform.localScale = new Vector3(.2f,.2f,.2f);
+            enemyAttacking = true;
+            
         }
 
     }
@@ -294,14 +305,26 @@ public class GameManager : MonoBehaviour
             _battleState = BattleState.FIGHT;
             battleTimer = 0;
         }
-
-        if (battleTimer <= 10 && battleTimer % 2 == 0)
+        // Debug.Log("battleTimer % 2 = " + battleTimer % 2 );
+        if (battleTimer % 2 < 0.005)
         {
+            // Debug.Log("Bird move activated");
             int movePos = Random.Range(0, 3);
-            Vector3[] positions = {defaultPosition + Vector3.left * 1.5f, defaultPosition, defaultPosition + Vector3.right * 1.5f};
+            Vector3[] positions = {defaultPosition + Vector3.left * 2f, defaultPosition, defaultPosition + Vector3.right * 1.5f};
             enemyPokemon.transform.localPosition = positions[movePos];
         }
         
+    }
+
+    void EnemyAttack()
+    {
+        if (enemyAttackObj.transform.localPosition == enemyAttackEndPositions[enemyAttackDirection])
+            enemyAttacking = false;
+       
+        enemyAttackObj.transform.localScale = Vector3.MoveTowards(enemyAttackObj.transform.localScale, Vector3.one, Time.deltaTime * 10f);
+        enemyAttackObj.transform.localPosition = Vector3.MoveTowards(enemyAttackObj.transform.localPosition, enemyAttackEndPositions[enemyAttackDirection],
+            Time.deltaTime * 10f);
+        Destroy(enemyAttackObj, 1f);
     }
 
     void EnemyPokemonRestPosition()
