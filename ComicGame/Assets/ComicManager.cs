@@ -38,7 +38,7 @@ public class ComicManager : MonoBehaviour
             panels[currentPanelNumber].transform.position + new Vector3(0, 0, -10)) > 0)
             return;
         
-        if (currentPanelNumber < panels.Length - 1 && currentPanelNumber != 6 && Input.GetButtonDown("GreenButton")) //Input.GetButtonDown("Submit") Disable during the battle and choice panel
+        if (currentPanelNumber < panels.Length - 1 && currentPanelNumber != 7 && Input.GetButtonDown("GreenButton")) //Input.GetButtonDown("Submit") Disable during the battle and choice panel
             ChangePanelNumber(currentPanelNumber + 1);
         
         // if (currentPanelNumber > 0 && Input.GetButtonDown("Cancel"))
